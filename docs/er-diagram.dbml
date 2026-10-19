@@ -1,0 +1,92 @@
+Table City {
+  Id integer [pk, increment]
+  Name varchar(100) [not null, unique]
+}
+
+Table AppUser {
+  Id varchar [pk]
+  FirstName varchar(100) [not null]
+  LastName varchar(100) [not null]
+  Email varchar(255) [not null, unique]
+  PhoneNumber varchar(30)
+}
+
+Table WorkshopType {
+  Id integer [pk, increment]
+  Name varchar(100) [not null, unique]
+}
+
+Table Service {
+  Id integer [pk, increment]
+  Name varchar(100) [not null, unique]
+  Description varchar(500)
+}
+
+Table Vehicle {
+  Id integer [pk, increment]
+  Make varchar(100) [not null]
+  Model varchar(100) [not null]
+  Year integer [not null]
+  RegistrationNumber varchar(20) [not null, unique]
+  VIN varchar(17) [unique]
+}
+
+Table Status {
+  Id integer [pk, increment]
+  Name varchar(100) [not null, unique]
+}
+
+Table Workshop {
+  Id integer [pk, increment]
+  OwnerId varchar [not null, ref: > AppUser.Id]
+  CityId integer [not null, ref: > City.Id]
+  WorkshopTypeId integer [not null, ref: > WorkshopType.Id]
+  Name varchar(150) [not null]
+  Address varchar(255) [not null]
+  Phone varchar(30)
+  Description varchar(1000)
+  IsApproved boolean [not null, default: false]
+}
+
+Table WorkOrder {
+  Id integer [pk, increment]
+  VehicleId integer [not null, ref: > Vehicle.Id]
+  ClientId varchar [not null, ref: > AppUser.Id]
+  WorkshopId integer [not null, ref: > Workshop.Id]
+  StatusId integer [not null, ref: > Status.Id]
+  ProblemDescription varchar(1000) [not null]
+  OpenedAt timestamp [not null]
+  StatusChangedAt timestamp [not null]
+  ClosedAt timestamp
+  Note varchar(1000)
+}
+
+Table WorkshopService {
+  WorkshopId integer [not null, ref: > Workshop.Id]
+  ServiceId integer [not null, ref: > Service.Id]
+  Price decimal(10,2)
+
+  indexes {
+    (WorkshopId, ServiceId) [pk]
+  }
+}
+
+Table VehicleOwnership {
+  Id integer [pk, increment]
+  VehicleId integer [not null, ref: > Vehicle.Id]
+  UserId varchar [not null, ref: > AppUser.Id]
+  OwnedFrom timestamp [not null]
+  OwnedTo timestamp
+}
+
+Table WorkOrderService {
+  WorkOrderId integer [not null, ref: > WorkOrder.Id]
+  ServiceId integer [not null, ref: > Service.Id]
+  Price decimal(10,2)
+
+  indexes {
+    (WorkOrderId, ServiceId) [pk]
+  }
+}
+
+Ref: "WorkOrder"."ClientId" <> "WorkOrder"."WorkshopId"
