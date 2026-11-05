@@ -1,6 +1,14 @@
-Table City {
-  Id integer [pk, increment]
-  Name varchar(100) [not null, unique]
+Enum request_status {
+  pending
+  accepted
+  rejected
+  cancelled
+}
+
+Enum order_item_type {
+  service
+  part
+  labor
 }
 
 Table AppUser {
@@ -11,59 +19,42 @@ Table AppUser {
   PhoneNumber varchar(30)
 }
 
+Table City {
+  Id integer [pk]
+  Name varchar(100) [not null, unique]
+}
+
 Table WorkshopType {
-  Id integer [pk, increment]
+  Id integer [pk]
   Name varchar(100) [not null, unique]
 }
 
 Table Service {
-  Id integer [pk, increment]
+  Id integer [pk]
   Name varchar(100) [not null, unique]
   Description varchar(500)
 }
 
-Table Vehicle {
-  Id integer [pk, increment]
-  Make varchar(100) [not null]
-  Model varchar(100) [not null]
-  Year integer [not null]
-  RegistrationNumber varchar(20) [not null, unique]
-  VIN varchar(17) [unique]
-}
-
 Table Status {
-  Id integer [pk, increment]
+  Id integer [pk]
   Name varchar(100) [not null, unique]
 }
 
 Table Workshop {
-  Id integer [pk, increment]
-  OwnerId varchar [not null, ref: > AppUser.Id]
-  CityId integer [not null, ref: > City.Id]
-  WorkshopTypeId integer [not null, ref: > WorkshopType.Id]
+  Id integer [pk]
+  OwnerId varchar [not null]
+  CityId integer [not null]
+  WorkshopTypeId integer [not null]
   Name varchar(150) [not null]
   Address varchar(255) [not null]
   Phone varchar(30)
   Description varchar(1000)
-  IsApproved boolean [not null, default: false]
-}
-
-Table WorkOrder {
-  Id integer [pk, increment]
-  VehicleId integer [not null, ref: > Vehicle.Id]
-  ClientId varchar [not null, ref: > AppUser.Id]
-  WorkshopId integer [not null, ref: > Workshop.Id]
-  StatusId integer [not null, ref: > Status.Id]
-  ProblemDescription varchar(1000) [not null]
-  OpenedAt timestamp [not null]
-  StatusChangedAt timestamp [not null]
-  ClosedAt timestamp
-  Note varchar(1000)
+  IsApproved boolean [not null]
 }
 
 Table WorkshopService {
-  WorkshopId integer [not null, ref: > Workshop.Id]
-  ServiceId integer [not null, ref: > Service.Id]
+  WorkshopId integer [not null]
+  ServiceId integer [not null]
   Price decimal(10,2)
 
   indexes {
@@ -71,22 +62,83 @@ Table WorkshopService {
   }
 }
 
+Table Vehicle {
+  Id integer [pk]
+  Make varchar(100) [not null]
+  Model varchar(100) [not null]
+  Year integer [not null]
+  RegistrationNumber varchar(20) [not null, unique]
+  VIN varchar(17) [unique]
+}
+
 Table VehicleOwnership {
-  Id integer [pk, increment]
-  VehicleId integer [not null, ref: > Vehicle.Id]
-  UserId varchar [not null, ref: > AppUser.Id]
+  Id integer [pk]
+  VehicleId integer [not null]
+  UserId varchar [not null]
   OwnedFrom timestamp [not null]
   OwnedTo timestamp
 }
 
-Table WorkOrderService {
-  WorkOrderId integer [not null, ref: > WorkOrder.Id]
-  ServiceId integer [not null, ref: > Service.Id]
-  Price decimal(10,2)
-
-  indexes {
-    (WorkOrderId, ServiceId) [pk]
-  }
+Table ServiceRequest {
+  Id integer [pk]
+  ClientId varchar [not null]
+  WorkshopId integer [not null]
+  VehicleId integer [not null]
+  ProblemDescription varchar(1000) [not null]
+  PreferredAt timestamp [not null]
+  CreatedAt timestamp [not null]
+  Status request_status [not null]
+  ResponseNote varchar(500)
+  RespondedAt timestamp
 }
 
-Ref: "WorkOrder"."ClientId" <> "WorkOrder"."WorkshopId"
+Table WorkOrder {
+  Id integer [pk]
+  VehicleId integer [not null]
+  ClientId varchar [not null]
+  WorkshopId integer [not null]
+  StatusId integer [not null]
+  ServiceRequestId integer [unique]
+  ProblemDescription varchar(1000) [not null]
+  OpenedAt timestamp [not null]
+  StatusChangedAt timestamp [not null]
+  ClosedAt timestamp
+  Note varchar(1000)
+}
+
+Table WorkOrderItem {
+  Id integer [pk]
+  WorkOrderId integer [not null]
+  ServiceId integer
+  ItemType order_item_type [not null]
+  Description varchar(255) [not null]
+  Quantity decimal(10,2) [not null]
+  UnitPrice decimal(10,2) [not null]
+}
+
+Table Invoice {
+  Id integer [pk]
+  WorkOrderId integer [not null, unique]
+  InvoiceNumber varchar(30) [not null, unique]
+  TotalAmount decimal(12,2) [not null]
+  IssuedAt timestamp [not null]
+}
+
+Ref: Workshop.OwnerId > AppUser.Id
+Ref: Workshop.CityId > City.Id
+Ref: Workshop.WorkshopTypeId > WorkshopType.Id
+Ref: WorkshopService.WorkshopId > Workshop.Id
+Ref: WorkshopService.ServiceId > Service.Id
+Ref: VehicleOwnership.VehicleId > Vehicle.Id
+Ref: VehicleOwnership.UserId > AppUser.Id
+Ref: ServiceRequest.ClientId > AppUser.Id
+Ref: ServiceRequest.WorkshopId > Workshop.Id
+Ref: ServiceRequest.VehicleId > Vehicle.Id
+Ref: WorkOrder.VehicleId > Vehicle.Id
+Ref: WorkOrder.ClientId > AppUser.Id
+Ref: WorkOrder.WorkshopId > Workshop.Id
+Ref: WorkOrder.StatusId > Status.Id
+Ref: WorkOrder.ServiceRequestId - ServiceRequest.Id
+Ref: WorkOrderItem.WorkOrderId > WorkOrder.Id
+Ref: WorkOrderItem.ServiceId > Service.Id
+Ref: Invoice.WorkOrderId - WorkOrder.Id
